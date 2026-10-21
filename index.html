@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HTML/JS-Lokaltest</title>
+  <style>
+    :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+    body { max-width: 760px; margin: 3rem auto; padding: 0 1rem; line-height: 1.5; }
+    h1 { line-height: 1.2; }
+    .card { border: 1px solid #8888; border-radius: 12px; padding: 1rem; margin: 1rem 0; }
+    .status { font-weight: 650; }
+    button { padding: .65rem 1rem; cursor: pointer; }
+    code { overflow-wrap: anywhere; }
+    li { margin: .45rem 0; }
+  </style>
+</head>
+<body>
+  <h1>HTML/JS-Lokaltest</h1>
+  <p>Diese Seite prüft, was direkt als Datei funktioniert und was einen Webserver benötigt.</p>
+
+  <section class="card">
+    <h2>1. Laufzeit</h2>
+    <p>Protokoll: <span id="protocol" class="status">wird geprüft …</span></p>
+    <p>JavaScript: <span id="js" class="status">wird geprüft …</span></p>
+    <p>DOM-Manipulation: <span id="dom" class="status">wird geprüft …</span></p>
+  </section>
+
+  <section class="card">
+    <h2>2. Browser-Speicher</h2>
+    <p id="storage" class="status">wird geprüft …</p>
+    <button id="storageButton" type="button">Speichertest wiederholen</button>
+  </section>
+
+  <section class="card">
+    <h2>3. Relative Datei laden (fetch)</h2>
+    <p>Dieser Test lädt <code>testdata.json</code> aus demselben Ordner. Das ist ein häufiger Grund, warum eine Vibe-Coding-App lokal einen Webserver benötigt.</p>
+    <button id="fetchButton" type="button">JSON-Datei laden</button>
+    <p id="fetchResult" class="status">Noch nicht ausgeführt.</p>
+  </section>
+
+  <section class="card">
+    <h2>Ergebnis einordnen</h2>
+    <ul>
+      <li>Wenn die Seite über <code>file://</code> geöffnet ist, laufen eingebettetes HTML, CSS und JavaScript grundsätzlich ohne Webserver.</li>
+      <li>Wenn der JSON-Test unter <code>file://</code> fehlschlägt, ist das typischerweise die Browser-Sicherheitsbeschränkung für lokale Dateien, kein Beweis für einen Fehler im JavaScript.</li>
+      <li>Wenn die Seite über <code>http://localhost</code> geöffnet ist und der JSON-Test gelingt, funktionieren relative Dateiabrufe über einen lokalen Webserver.</li>
+    </ul>
+  </section>
+
+  <script>
+    // Test 1: Inline-JavaScript und DOM-Zugriff
+    document.getElementById("protocol").textContent = location.protocol;
+    document.getElementById("js").textContent = "OK – JavaScript wird ausgeführt";
+    document.getElementById("dom").textContent = "OK – diese Seite wurde per JavaScript aktualisiert";
+
+    // Test 2: localStorage kann je nach Browser/Datenschutzmodus bei file:// eingeschränkt sein.
+    function testStorage() {
+      const el = document.getElementById("storage");
+      try {
+        const key = "html-js-localtest";
+        localStorage.setItem(key, "ok");
+        const value = localStorage.getItem(key);
+        localStorage.removeItem(key);
+        el.textContent = value === "ok" ? "OK – Schreiben und Lesen möglich" : "FEHLER – gelesener Wert stimmt nicht";
+      } catch (error) {
+        el.textContent = "Nicht verfügbar: " + error.name + " – " + error.message;
+      }
+    }
+    document.getElementById("storageButton").addEventListener("click", testStorage);
+    testStorage();
+
+    // Test 3: Relative Datei per fetch laden.
+    document.getElementById("fetchButton").addEventListener("click", async () => {
+      const el = document.getElementById("fetchResult");
+      el.textContent = "Lade …";
+      try {
+        const response = await fetch("./testdata.json", { cache: "no-store" });
+        if (!response.ok) throw new Error("HTTP-Status " + response.status);
+        const data = await response.json();
+        el.textContent = "OK – JSON geladen: " + JSON.stringify(data);
+      } catch (error) {
+        el.textContent = "FEHLGESCHLAGEN – " + error.name + ": " + error.message +
+          (location.protocol === "file:" ? " (bei file:// häufig durch Browser-Sicherheitsregeln verursacht)" : "");
+      }
+    });
+  </script>
+</body>
+</html>
